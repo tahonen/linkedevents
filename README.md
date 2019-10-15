@@ -3,78 +3,38 @@
 [![Build status](https://travis-ci.org/City-of-Helsinki/linkedevents.svg)](https://travis-ci.org/City-of-Helsinki/linkedevents)
 [![codecov](https://codecov.io/gh/City-of-Helsinki/linkedevents/branch/master/graph/badge.svg)](https://codecov.io/gh/City-of-Helsinki/linkedevents)
 [![Requirements](https://requires.io/github/City-of-Helsinki/linkedevents/requirements.svg?branch=master)](https://requires.io/github/City-of-Helsinki/linkedevents/requirements/?branch=master)
-[![Stories in Ready](https://badge.waffle.io/City-of-Helsinki/linkedevents.svg?label=ready&title=Ready)](http://waffle.io/City-of-Helsinki/linkedevents)
-[![Gitter](https://img.shields.io/gitter/room/City-of-Helsinki/heldev.svg?maxAge=2592000)](https://gitter.im/City-of-Helsinki/heldev)
+[![Gitter](https://img.shields.io/gitter/room/City-of-Helsinki/heldev.svg?maxAge=2592000)](https://gitter.im/City-of-Helsinki/
+heldev)
 
-Linked Events provides categorized data on events and places. The project was originally developed for the City of Helsinki.
+Linked Events is event information disseminator and aggregator (events as in things where people participate). At its core is
+an implementation of the Linked Events REST API. This API allows interested parties to retrieve information about events and,
+if properly authorized, publish new events. Linked Events also contains a framework for retrieving events from legacy
+sources in all manner of formats (this will require coding, of course). In short, Linked Events allows you to set up an
+event publication hub.
 
-[The Linked Events API for the Helsinki capital region](http://api.hel.fi/linkedevents/) contains data from the Helsinki City Tourist & Convention Bureau, the City of Helsinki Cultural Office and the Helmet metropolitan area public libraries.
+Linked Events for was originally written for the City of Helsinki. [The Linked Events API for the Helsinki capital region](http://api.hel.fi/linkedevents/) contains data from the Helsinki City Tourist & Convention Bureau, the City of Helsinki Cultural Office and the Helmet metropolitan area public libraries. Viewing the API should give a reasonable view for kinds of information Linked Events is targeted for.
 
-*Linked Events has been updated to Django 1.11. To upgrade to Linked Events release v2.0, please upgrade to release v1.3 first.*
+This README is targeted for someone wanting to quickly set up Linked Events for development or test drive.
 
-Set up project with Docker
---------------------------
+Requirements for running Linked Events
+--------------------------------------
+* Python 3.6
+* Elasticsearch (for /search endpoint, non-fuzzy search works fine without it)
+* Docker and docker-compose (if are going to be running in Docker)
 
-1. Create `local_settings.py` from the template:
-    * `cp local_settings.py.template local_settings.py`
-    
-2. Run `docker-compose up`
+Setting up on local machine
+---------------------------
+If you are going to use Docker, no local setup is necessary. Python dependencies, databases etc. will be
+inside containers. You only need step one here, ie. clone the repository
 
-3. Run migrations:
-    * `docker exec linkedevents-backend python manage.py migrate`
+1. Clone this repository to a directory of your choosing (well, you've probably done this already :)
 
-4. Syncronize languages for translations in DB:
-    * `docker exec -it linkedevents-backend python manage.py sync_translation_fields`
-    * Answer `y` (for 'yes') to all prompt questions
-    
-If you wish to install Linkedevents without any Helsinki specific data (an empty database), and instead customize everything for your own city, you may jump to step 10.
-
-Steps 5-9 are needed if you wish to use location or event data from the Helsinki metropolitan region, or if you wish to run the Helsinki UI (https://linkedevents.hel.fi) from https://github.com/City-of-Helsinki/linkedevents-ui. Currently, the UI is specific to Helsinki and requires the general Finnish ontology as well as additional Helsinki specific audiences and keywords to be present, though its code should be easily adaptable to your own city if you have an OAuth2 authentication server present.
-
-5. (Optionally) import general Finnish ontology (used by Helsinki UI and Helsinki events):
-    * `docker exec -it linkedevents-backend python manage.py event_import yso --all`
-6. (Optionally) add helsinki specific audiences and keywords:
-    ```bash
-    # Add keyword set to display in the UI event audience selection
-    docker exec -it linkedevents-backend python manage.py add_helsinki_audience
-    # Add keyword set to display in the UI main category selection
-    docker exec -it linkedevents-backend python manage.py add_helfi_topics
-    ```
-7. (Optionally) import places and events for testing:
-    ```bash
-    # Import places from Helsinki metropolitan region service registry (used by events from following sources)
-    docker exec -it linkedevents-backend python manage.py event_import tprek --places
-    # Import events from Helsinki metropolitan region libraries
-    docker exec -it linkedevents-backend python manage.py event_import helmet --events
-    # Import events from Espoo
-    docker exec -it linkedevents-backend python manage.py event_import espoo --events
-8. (Optionally) import City of Helsinki internal organization for UI user rights management:
-    * `docker exec -it linkedevents-backend python manage.py import_organizations https://api.hel.fi/paatos/v1/organization/ -s helsinki:ahjo`
-9. (Optionally) install API frontend templates:
-    * `docker exec -it linkedevents-backend python manage.py install_templates helevents`
-
-Finish the install:
-
-10. (Optionally) install Elasticsearch reading the [instructions below](#search). This is an optional feature. If you do not wish to install Elasticsearch, all the endpoints apart from `/v1/search` will function normally, and the `/v1/search` endpoint does a dumb exact text match for development purposes.
-
-11. Start your Django server:
-    * `docker exec -it linkedevents-backend python manage.py runserver 0:8000`
-
-Now your project is live at [localhost:8000](http://localhost:8000)
-
-For UI, set authentication keys to local_settings.
-
-Installation for development
-----------------------------
-These instructions assume an $INSTALL_BASE, like so:
+2. These instructions assume an $INSTALL_BASE, like so:
 ```bash
 INSTALL_BASE=$HOME/linkedevents
 ```
-If you've already cloned this repository, just move repository root into $INSTALL_BASE/linkedevents. Otherwise just clone the repository, like so:
-```bash
-git clone https://github.com/City-of-Helsinki/linkedevents.git $INSTALL_BASE/linkedevents
-```
-Prepare Python 3.x virtualenv using your favorite tools and activate it. Plain virtualenv is like so:
+
+3. Prepare Python 3.x virtualenv using your favorite tools and activate it. Plain virtualenv is like so:
 ```bash
 virtualenv -p python3 $INSTALL_BASE/venv
 source $INSTALL_BASE/venv/bin/activate
@@ -84,7 +44,8 @@ Install required Python packages into the virtualenv
 cd $INSTALL_BASE/linkedevents
 pip install -r requirements.txt
 ```
-Create the database, like so: (we have only tested on PostgreSQL)
+
+4. Create the database, like so: (we have only tested on PostgreSQL)
 ```bash
 cd $INSTALL_BASE/linkedevents
 sudo -u postgres createuser -R -S linkedevents
@@ -96,34 +57,74 @@ sudo -u postgres createdb -Olinkedevents -Ttemplate0 -lfi_FI.UTF-8 linkedevents
 # Create extensions in the database
 sudo -u postgres psql linkedevents -c "CREATE EXTENSION postgis;"
 sudo -u postgres psql linkedevents -c "CREATE EXTENSION hstore;"
-# This fills the database with a basic skeleton
-python manage.py migrate
-# This adds language fields based on settings.LANGUAGES (which may be missing in external dependencies)
-python manage.py sync_translation_fields
 ```
 
-If you wish to install Linkedevents without any Helsinki specific data (an empty database), and instead customize everything for your own city, you have a working install right now.
+Configuring Linked Events
+-------------------------
+This applies to both local install and running in Docker.
 
-The last steps are needed if you wish to use location or event data from the Helsinki metropolitan region, or if you wish to run the Helsinki UI (https://linkedevents.hel.fi) from https://github.com/City-of-Helsinki/linkedevents-ui. Currently, the UI is specific to Helsinki and requires the general Finnish ontology as well as additional Helsinki specific audiences and keywords to be present, though its code should be easily adaptable to your own city if you have an OAuth2 authentication server present.
+All configuration is handled through environment variables. For development, `config_dev.env`
+file is the simplest to configure these. Begin by renaming `config_dev.env.example` to `config_dev.env`.
+
+The example file is quite profusely commented and you probably want to skim through it. If you just want to see what Linked Events does, you do not need to change anything in the example file. The setting you are most likely to need to change is `DATABASE_URL` if your database is named differently, or needs username and password. The next most important setting is  `LANGUAGES`. It affects which language fields are present in the database and search indexes. Ie. it should be changed
+carefully.
+
+The next things you are likely to need are `TOKEN_AUTH_ACCEPTED_AUDIENCE` and `TOKEN_AUTH_SHARED_SECRET`. These are needed if you wish to make authenticated requests to the API using a signed token. This will need a configured Tunnistamo-instance (https://github.com/City-of-Helsinki/tunnistamo). There is also the option of making requests using a traditional API key, but this is managed through administration interface along with all other permissions. If you are developing Linked Events, the administrator of the environment can probably provide you with the TOKEN_AUTH_* variables, if they are needed.
+
+Initializing the database
+-------------------------
+Linked Events stores everything except event images in the database. Thus it will need to be initialized before it can serve any requests.
+
+### Prerequisites
+
+`DATABASE_URL` and `LANGUAGES` must be correctly configured (see "Configuring Linked Events")
+
+If you are running with Docker, you will need to bring up the containers:
+`docker-compose up`
+Also if you wish to use the examples verbatim, set `DOCKER_CMD` to the name of the command that can be used to execute in the backend container. For the included docker-compose.yml this would be:
+`DOCKER_CMD=docker exec linkedevents-backend`
+
+For local setup, make sure your database engine is running and the database has been created (see "Setting on local machine")
+
+### Mandatory initialization steps
+
+If you wish to install Linkedevents without any Helsinki specific data (an empty database), and instead customize everything for your own city, these are the only steps you need.
+
+```
+# This fills the database with a basic skeleton
+$DOCKER_EXEC python manage.py migrate
+# This adds language fields based on settings.LANGUAGES (which may be missing in external dependencies)
+$DOCKER_EXEC python manage.py sync_translation_fields
+```
+
+### Optional initialization setup
+
+You can optionally add several datasets to your Linked Events instance:
+* location data from Helsinki metropolitan region
+* event data from the same
+* YSO (General Finnish Ontology) keywords
+* Helsinki audience and topic categorizations
+
+The first three are very good for testing your instance. The latter two (interlaced sets ;) are also needed if you wish to try the Helsinki UI (https://linkedevents.hel.fi) available from https://github.com/City-of-Helsinki/linkedevents-ui. The UI is somewhat Helsinki specific, but adopting it to your own uses should not be too difficult.
 
 ```bash
 cd $INSTALL_BASE/linkedevents
 # Import general Finnish ontology (used by Helsinki UI and Helsinki events)
-python manage.py event_import yso --all
+$DOCKER_EXEC python manage.py event_import yso --all
 # Add keyword set to display in the UI event audience selection
-python manage.py add_helsinki_audience
+$DOCKER_EXEC python manage.py add_helsinki_audience
 # Add keyword set to display in the UI main category selection
-python manage.py add_helfi_topics
+$DOCKER_EXEC python manage.py add_helfi_topics
 # Import places from Helsinki metropolitan region service registry (used by events from following sources)
-python manage.py event_import tprek --places
+$DOCKER_EXEC python manage.py event_import tprek --places
 # Import events from Helsinki metropolitan region libraries
-python manage.py event_import helmet --events
+$DOCKER_EXEC python manage.py event_import helmet --events
 # Import events from Espoo
-python manage.py event_import espoo --events
+$DOCKER_EXEC python manage.py event_import espoo --events
 # Import City of Helsinki hierarchical organization for UI user rights management
-python manage.py import_organizations https://api.hel.fi/paatos/v1/organization/ -s helsinki:ahjo
+$DOCKER_EXEC python manage.py import_organizations https://api.hel.fi/paatos/v1/organization/ -s helsinki:ahjo
 # install API frontend templates:
-python manage.py install_templates helevents
+$DOCKER_EXEC python manage.py install_templates helevents
 ```
 
 The last command installs the `helevents/templates/rest_framework/api.html` template,
