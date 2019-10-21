@@ -9,7 +9,10 @@ from sentry_sdk.integrations.django import DjangoIntegration
 from django.conf.global_settings import LANGUAGES as GLOBAL_LANGUAGES
 from django.core.exceptions import ImproperlyConfigured
 
-CONFIG_FILE_NAME = "config_dev.toml"
+# config_dev.env is the preferred name
+# config_dev.toml is the old name choice of which has been
+# heavily criticized (the format is not TOML, really)
+CONFIG_FILE_NAMES = ['config_dev.env', 'config_dev.toml']
 
 
 def get_git_revision_hash() -> str:
@@ -62,11 +65,13 @@ BASE_DIR = root()
 
 # Django environ has a nasty habit of complanining at level
 # WARN about env file not being preset. Here we pre-empt it.
-env_file_path = os.path.join(BASE_DIR, CONFIG_FILE_NAME)
-if os.path.exists(env_file_path):
-    # Logging configuration is not available at this point
-    print(f'Reading config from {env_file_path}')
-    environ.Env.read_env(env_file_path)
+for config_file_name in CONFIG_FILE_NAMES:
+    env_file_path = os.path.join(BASE_DIR, config_file_name)
+    if os.path.exists(env_file_path):
+        # Logging configuration is not available at this point
+        print(f'Reading config from {env_file_path}')
+        environ.Env.read_env(env_file_path)
+        break
 
 DEBUG = env('DEBUG')
 TEMPLATE_DEBUG = False
